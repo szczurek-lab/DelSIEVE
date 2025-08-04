@@ -1,4 +1,4 @@
-# DelSIEVE - Deltions-enabled SIngle-cell EVolution Explorer
+# DelSIEVE - Deletions-enabled SIngle-cell EVolution Explorer
 
 DelSIEVE is a novel probabilistic model that from raw read counts of scDNA-seq data jointly infers cell phylogeny and somatic variants, including SNVs and deletions. DelSIEVE is an extension to our predecessor model, SIEVE (check out the [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02813-9) and [software](https://github.com/szczurek-lab/SIEVE)). DelSIEVE is implemented as a superset of SIEVE and available as a package of [BEAST 2](https://www.beast2.org/).
 
