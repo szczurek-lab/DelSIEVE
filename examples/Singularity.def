@@ -1,0 +1,98 @@
+Bootstrap: library
+From: ubuntu:jammy
+
+%labels
+    Author Senbai Kang <s.kang2@uw.edu.pl>
+    Version v0.1.0
+
+%environment
+    TZ=UTC
+    LC_ALL=en_US.UTF-8
+    LANG=en_US.UTF-8
+    DEBIAN_FRONTEND=noninteractive
+
+%post
+# Versions of tools
+    export JAVA_VERSION=8
+    export DATAFILTER_VERSION=v0.1.0
+    export BEAST_2_VERSION_MAJOR=2.6
+    export BEAST_2_VERSION_MINOR=7
+    export DLIB_VERSION=19.24
+    export DELSIEVE_VERSION=v0.16.13
+
+    export TZ=UTC
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    export DEBIAN_FRONTEND=noninteractive
+
+# DNS
+    # echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+    sed -i 's/ch.archive.ubuntu.com/en.archive.ubuntu.com/g' /etc/apt/sources.list
+
+# Force ipv4
+    echo 'Acquire::ForceIPv4 "true";' | tee /etc/apt/apt.conf.d/99force-ipv4
+
+    apt-get update && \
+    apt-get install -y locales gnupg-agent && \
+    sed -i '/^#.* en_.*.UTF-8 /s/^#//' /etc/locale.gen && \
+    sed -i '/^#.* fr_.*.UTF-8 /s/^#//' /etc/locale.gen && \
+    locale-gen
+
+# System preparation
+    apt-get update
+    apt-get install --no-install-recommends -y software-properties-common dirmngr apt-utils wget curl vim htop unzip ca-certificates apt-transport-https build-essential autotools-dev libicu-dev libbz2-dev libboost-all-dev libomp-dev gsfonts gnupg2 cmake git
+
+# Add zulu Java repository
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0xB1998361219BD9C9 && \
+    curl -O https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-3_all.deb && \
+    dpkg -i zulu-repo_1.0.0-3_all.deb && \
+    rm zulu-repo_1.0.0-3_all.deb
+
+# Install zulu Java
+    apt-get update
+    apt-get install --no-install-recommends -y zulu${JAVA_VERSION}-ca-jre
+    apt clean
+    rm -rf /var/lib/apt/lists/*
+
+# Work dir
+    cd /opt
+
+# Install dlib
+    wget -O dlib.tar.gz https://codeload.github.com/davisking/dlib/tar.gz/refs/tags/v${DLIB_VERSION}
+    tar -xzf dlib.tar.gz
+    cd dlib-${DLIB_VERSION}
+    mkdir build
+    cd build
+    cmake -D CMAKE_C_COMPILER=/usr/bin/gcc -D CMAKE_CXX_COMPILER=/usr/bin/g++ -D CMAKE_BUILD_TYPE=Release .. 
+    cmake --build .
+    make install
+    rm -rf dlib-${DLIB_VERSION}
+
+# Install DataFilter
+    git clone --depth 1 --branch ${DATAFILTER_VERSION} https://github.com/szczurek-lab/DataFilter.git
+    cd DataFilter
+    mkdir build
+    cd build
+    cmake -D CMAKE_C_COMPILER=/usr/bin/gcc -D CMAKE_CXX_COMPILER=/usr/bin/g++ -D CMAKE_BUILD_TYPE=Release ..
+    cmake --build .
+    ln -s bin/datafilter /usr/local/bin/datafilter
+    rm -rf DataFilter
+
+# Install BEAST 2 and SIEVE
+    wget -O BEAST.v${BEAST_2_VERSION_MAJOR}.${BEAST_2_VERSION_MINOR}.Linux.tgz https://github.com/CompEvol/beast2/releases/download/v${BEAST_2_VERSION_MAJOR}.${BEAST_2_VERSION_MINOR}/BEAST.v${BEAST_2_VERSION_MAJOR}.${BEAST_2_VERSION_MINOR}.Linux.tgz
+    tar -xzf BEAST.v${BEAST_2_VERSION_MAJOR}.${BEAST_2_VERSION_MINOR}.Linux.tgz
+    rm -f BEAST.v${BEAST_2_VERSION_MAJOR}.${BEAST_2_VERSION_MINOR}.Linux.tgz
+    ln -s beast/bin/beast /usr/local/bin/beast
+    ln -s beast/bin/applauncher /usr/local/bin/applauncher
+    ln -s beast/bin/packagemanager /usr/local/bin/packagemanager
+    mkdir -p /usr/local/share/beast/${BEAST_2_VERSION_MAJOR}/DelSIEVE
+    packagemanager -dir /usr/local/share/beast/${BEAST_2_VERSION_MAJOR} -add ORC
+    cd /usr/local/share/beast/${BEAST_2_VERSION_MAJOR}/DelSIEVE
+    wget -O DelSIEVE-${DELSIEVE_VERSION}.tar.gz https://codeload.github.com/szczurek-lab/DelSIEVE/tar.gz/refs/tags/${DELSIEVE_VERSION}
+    tar -xzf DelSIEVE-${DELSIEVE_VERSION}.tar.gz && \
+    rm -f DelSIEVE-${DELSIEVE_VERSION}.tar.gz && \
+    cp DelSIEVE*/dist/DelSIEVE.${DELSIEVE_VERSION}.zip ${DELSIEVE_VERSION}.zip && \
+    rm -rf DelSIEVE* && \
+    unzip ${DELSIEVE_VERSION}.zip && \
+    rm -f ${DELSIEVE_VERSION}.zip
+

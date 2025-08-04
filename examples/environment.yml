@@ -1,0 +1,7 @@
+name: delsieve
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - snakemake=7.24.0
